@@ -1,0 +1,292 @@
+-- island.script — Castaway Beacon, Defold port (single-script scene driver)
+local world = require "game.world"
+local surv = require "game.survival"
+local build = require "game.build"
+
+local W, H = 480, 640
+local Z_BASE = 0.01
+
+local state
+local nodes = {}
+local structures = {}
+local actor
+local pending_collect_id
+local pending_build
+local pending_work
+local announce_cooldown = 0
+
+local function zfor(y)
+	return Z_BASE + y / 10000
+end
+
+local function status_line()
+	return string.format(
+		"DAY %d %s | WOOD %d FOOD %d POP %d HUTS %d",
+		state.day, string.upper(state.phase), state.resources.wood,
+		state.resources.food, state.population, build.hut_count(state))
+end
+
+local function announce(text)
+	print("ANNOUNCE: " .. text)
+end
+
+local function spawn_node(n)
+	local id = factory.create("#node_factory", vmath.vector3(n.x, n.y, zfor(n.y)))
+	sprite.play_flipbook(id, hash("driftwood"))
+	nodes[n.id] = id
+end
+
+local function spawn_structure(s)
+	local anim = "raft_platform"
+	if s.kind == "hut" then
+		anim = (s.slot_index % 2 == 1) and "hut_a" or "hut_b"
+	end
+	local id = factory.create("#node_factory", vmath.vector3(s.x, s.y, zfor(s.y)))
+	sprite.play_flipbook(id, hash(anim))
+	structures[s.id] = id
+end
+
+local function nearest_node()
+	local best, best_d
+	for _, n in ipairs(state.nodes) do
+		local d = (n.x - state.actor.x) ^ 2 + (n.y - state.actor.y) ^ 2
+		if not best or d < best_d then
+			best, best_d = n, d
+		end
+	end
+	return best
+end
+
+
+-- autoplayer (headless verification): drives the full loop when CB_AUTOPLAY is set
+local auto_steps = {
+	{ t = 1,  fn = "collect" },
+	{ t = 8,  fn = "collect" },
+	{ t = 15, fn = "collect" },
+	{ t = 22, fn = "collect" },
+	{ t = 29, fn = "collect" },
+	{ t = 36, fn = "collect" },
+	{ t = 125, fn = "collect" },
+	{ t = 133, fn = "collect" },
+	{ t = 141, fn = "collect" },
+	{ t = 149, fn = "collect" },
+	{ t = 158, fn = "collect" },
+	{ t = 166, fn = "collect" },
+	{ t = 174, fn = "collect" },
+	{ t = 182, fn = "collect" },
+	{ t = 195, fn = "hut" },
+	{ t = 210, fn = "collect" },
+	{ t = 218, fn = "collect" },
+	{ t = 226, fn = "collect" },
+	{ t = 234, fn = "collect" },
+	{ t = 242, fn = "collect" },
+	{ t = 250, fn = "collect" },
+	{ t = 258, fn = "collect" },
+	{ t = 266, fn = "collect" },
+	{ t = 278, fn = "collect" },
+	{ t = 286, fn = "collect" },
+	{ t = 294, fn = "collect" },
+	{ t = 302, fn = "collect" },
+	{ t = 310, fn = "collect" },
+	{ t = 318, fn = "collect" },
+	{ t = 326, fn = "collect" },
+	{ t = 335, fn = "hut" },
+	{ t = 360, fn = "fish" },
+	{ t = 368, fn = "dig" },
+}
+
+local function auto_run(fn)
+	if fn == "collect" then
+		local n = nearest_node()
+		if n then
+			pending_collect_id = n.id
+			surv.begin_move(state, n.x, n.y, state.land_level)
+			announce("auto: walking to logs")
+		end
+	elseif fn == "hut" then
+		local ok = build.can_build(state, "hut")
+		if ok then
+			local slot_index, slot = build.next_slot(state, "hut")
+			if slot_index then
+				local x, y = world.clamp_to_sand(slot.x, slot.y, state.land_level)
+				pending_build = { kind = "hut", slot_index = slot_index, x = x, y = y }
+				surv.begin_move(state, x, y - 6, state.land_level)
+				announce("auto: walking to hut site")
+			end
+		else
+			announce("auto: cannot build hut yet")
+		end
+	elseif fn == "fish" then
+		pending_work = "fishing"
+		surv.begin_work(state, "fishing")
+		announce("auto: going fishing")
+	elseif fn == "dig" then
+		pending_work = "digging"
+		surv.begin_work(state, "digging")
+		announce("auto: going digging")
+	end
+end
+
+function setup_autoplay(self)
+	self.auto_t = 0
+	self.auto_i = 1
+end
+
+function tick_autoplay(self, dt)
+	if not self.auto_t then return end
+	self.auto_t = self.auto_t + dt
+	while self.auto_i <= #auto_steps and self.auto_t >= auto_steps[self.auto_i].t do
+		if state.actor.mode == "idle" or auto_steps[self.auto_i].fn ~= "collect" then
+			auto_run(auto_steps[self.auto_i].fn)
+			self.auto_i = self.auto_i + 1
+		else
+			break
+		end
+	end
+end
+
+function init(self)
+	print("INIT START")
+	state = surv.create_initial_state()
+	surv.replenish_nodes(state)
+
+	local bg = factory.create("#node_factory", vmath.vector3(W / 2, H / 2, -0.1))
+	sprite.play_flipbook(bg, hash("island-bg"))
+
+	local fire = factory.create("#node_factory", vmath.vector3(world.SAND_CENTER.x, world.SAND_CENTER.y - 20, zfor(world.SAND_CENTER.y)))
+	sprite.play_flipbook(fire, hash("campfire"))
+
+	local p1 = factory.create("#node_factory", vmath.vector3(150, 330, zfor(330)))
+	sprite.play_flipbook(p1, hash("palm_a"))
+	local p2 = factory.create("#node_factory", vmath.vector3(336, 380, zfor(380)))
+	sprite.play_flipbook(p2, hash("palm_b"))
+	local p3 = factory.create("#node_factory", vmath.vector3(268, 306, zfor(306)))
+	sprite.play_flipbook(p3, hash("palm_a"))
+
+	actor = factory.create("#node_factory", vmath.vector3(state.actor.x, state.actor.y, zfor(state.actor.y)))
+	sprite.play_flipbook(actor, hash("castaway_idle_down"))
+
+	for _, n in ipairs(state.nodes) do
+		spawn_node(n)
+	end
+	print("INIT OK: " .. status_line())
+	if os.getenv("CB_AUTOPLAY") then
+		setup_autoplay(self)
+		print("AUTOPLAY armed")
+	end
+end
+
+function update(self, dt)
+	if self.auto_t then
+		tick_autoplay(self, dt)
+	end
+	local day_ev = surv.tick_day(state, dt)
+	state = surv.continue_movement(state, dt)
+	local work_ev = surv.tick_work(state, dt)
+
+	if announce_cooldown > 0 then
+		announce_cooldown = announce_cooldown - dt
+	end
+
+	if day_ev == "new-day" then
+		local name = surv.process_arrivals(state)
+		if name then
+			announce(name .. " washed ashore - welcome!")
+			announce_cooldown = 4
+		end
+	end
+
+	if work_ev == "first-catch" then
+		announce("First catch! +" .. surv.FISH_YIELD .. " food")
+		announce_cooldown = 3
+	elseif work_ev == "fished" then
+		announce("Caught fish. +" .. surv.FISH_YIELD .. " food")
+		announce_cooldown = 2
+	elseif work_ev == "land-grow" then
+		announce("The sandbar is wider now!")
+		announce_cooldown = 4
+	elseif work_ev and work_ev:sub(1, 8) == "digging:" then
+		announce("Digging... " .. work_ev:sub(9) .. "/" .. surv.DIGS_PER_EXPANSION)
+		announce_cooldown = 2
+	end
+
+	surv.replenish_nodes(state)
+
+	for id, goid in pairs(nodes) do
+		local alive = false
+		for _, n in ipairs(state.nodes) do
+			if n.id == id then
+				alive = true
+				break
+			end
+		end
+		if not alive then
+			go.delete(goid)
+			nodes[id] = nil
+		end
+	end
+	for _, n in ipairs(state.nodes) do
+		if not nodes[n.id] then
+			spawn_node(n)
+		end
+	end
+
+	for _, s in ipairs(state.structures) do
+		if not structures[s.id] then
+			spawn_structure(s)
+		end
+	end
+
+	local beat = surv.next_story_beat(state)
+	if beat then
+		announce(beat.title .. " - " .. beat.body)
+		announce_cooldown = 5
+	end
+
+	go.set_position(vmath.vector3(state.actor.x, state.actor.y, zfor(state.actor.y)), actor)
+
+	if state.actor.mode == "working" then
+		if pending_collect_id then
+			local ok, err = pcall(surv.collect_node, state, pending_collect_id)
+			if ok then
+				announce("+1 driftwood")
+			else
+				announce("collect failed: " .. tostring(err))
+			end
+			pending_collect_id = nil
+			state.actor.mode = "idle"
+		elseif pending_build then
+			local b = pending_build
+			pending_build = nil
+			local ok, err = pcall(build.place_structure, state, b.kind, b.slot_index, b.x, b.y)
+			if ok then
+				announce(b.kind == "hut" and "A hut stands!" or "Raft platform built")
+			else
+				announce("build failed: " .. tostring(err))
+			end
+			state.actor.mode = "idle"
+		elseif not pending_work then
+			state.actor.mode = "idle"
+		end
+	end
+
+	if announce_cooldown <= 0 and math.floor(state.clock_seconds) % 20 == 0 then
+		print("STATUS: " .. status_line())
+		announce_cooldown = 1
+	end
+end
+
+function on_input(self, action_id, action)
+	if action_id == hash("touch") and action.pressed then
+		if pending_collect_id or pending_build or pending_work then
+			announce("Already busy")
+			return
+		end
+		local n = nearest_node()
+		if n then
+			pending_collect_id = n.id
+			surv.begin_move(state, n.x, n.y, state.land_level)
+			announce("Walking to the logs...")
+		end
+	end
+end

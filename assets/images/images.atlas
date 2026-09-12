@@ -1,0 +1,142 @@
+images {
+  image: "/assets/images/island-bg.png"
+}
+
+animations {
+  id: "campfire"
+  images {
+    image: "/assets/images/campfire_0.png"
+  }
+  images {
+    image: "/assets/images/campfire_1.png"
+  }
+  fps: 5
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+animations {
+  id: "castaway_idle_down"
+  images {
+    image: "/assets/images/castaway_idle_down.png"
+  }
+  fps: 1
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+animations {
+  id: "castaway_idle_side"
+  images {
+    image: "/assets/images/castaway_idle_side.png"
+  }
+  fps: 1
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+animations {
+  id: "castaway_idle_up"
+  images {
+    image: "/assets/images/castaway_idle_up.png"
+  }
+  fps: 1
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+animations {
+  id: "castaway_walk_down"
+  images {
+    image: "/assets/images/castaway_walk_down_0.png"
+  }
+  images {
+    image: "/assets/images/castaway_walk_down_1.png"
+  }
+  fps: 6
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+animations {
+  id: "castaway_walk_side"
+  images {
+    image: "/assets/images/castaway_walk_side_0.png"
+  }
+  images {
+    image: "/assets/images/castaway_walk_side_1.png"
+  }
+  fps: 6
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+animations {
+  id: "castaway_walk_up"
+  images {
+    image: "/assets/images/castaway_walk_up_0.png"
+  }
+  images {
+    image: "/assets/images/castaway_walk_up_1.png"
+  }
+  fps: 6
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+animations {
+  id: "driftwood"
+  images {
+    image: "/assets/images/driftwood.png"
+  }
+  fps: 1
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+animations {
+  id: "hut_a"
+  images {
+    image: "/assets/images/hut_a.png"
+  }
+  fps: 1
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+animations {
+  id: "hut_b"
+  images {
+    image: "/assets/images/hut_b.png"
+  }
+  fps: 1
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+animations {
+  id: "palm_a"
+  images {
+    image: "/assets/images/palm_a.png"
+  }
+  fps: 1
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+animations {
+  id: "palm_b"
+  images {
+    image: "/assets/images/palm_b.png"
+  }
+  fps: 1
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+animations {
+  id: "raft_platform"
+  images {
+    image: "/assets/images/raft_platform.png"
+  }
+  fps: 1
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+animations {
+  id: "tent"
+  images {
+    image: "/assets/images/tent.png"
+  }
+  fps: 1
+  flip_horizontal: 0
+  flip_vertical: 0
+}

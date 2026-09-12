@@ -1,0 +1,8 @@
+build/
+.defold-cache/
+*.arcd
+*.arci
+*.dmanifest
+.projectc
+manifest.private.der
+manifest.public.der

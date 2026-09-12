@@ -1,0 +1,29 @@
+name: "main"
+scale_along_z: 0
+embedded_instances {
+  id: "island_root"
+  data:   "components {\n"
+  "  id: \"island\"\n"
+  "  component: \"/main/island.script\"\n"
+  "}\n"
+  "components {\n"
+  "  id: \"node_factory\"\n"
+  "  component: \"/main/node.factory\"\n"
+  "}\n"
+  position {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  }
+  rotation {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  scale3 {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+}
