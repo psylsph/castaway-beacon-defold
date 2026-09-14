@@ -92,7 +92,17 @@ local auto_steps = {
 	{ t = 326, fn = "collect" },
 	{ t = 335, fn = "hut" },
 	{ t = 360, fn = "fish" },
-	{ t = 368, fn = "dig" },
+	{ t = 372, fn = "fish" },
+	{ t = 384, fn = "dig" },
+	{ t = 396, fn = "dig" },
+	{ t = 408, fn = "dig" },
+	{ t = 420, fn = "dig" },
+	{ t = 432, fn = "collect" },
+	{ t = 440, fn = "collect" },
+	{ t = 448, fn = "hut" },
+	{ t = 460, fn = "collect" },
+	{ t = 468, fn = "collect" },
+	{ t = 476, fn = "hut" },
 }
 
 local function auto_run(fn)
@@ -136,8 +146,10 @@ function tick_autoplay(self, dt)
 	if not self.auto_t then return end
 	self.auto_t = self.auto_t + dt
 	while self.auto_i <= #auto_steps and self.auto_t >= auto_steps[self.auto_i].t do
-		if state.actor.mode == "idle" or auto_steps[self.auto_i].fn ~= "collect" then
-			auto_run(auto_steps[self.auto_i].fn)
+		local step = auto_steps[self.auto_i]
+		local busy = state.actor.mode ~= "idle" or pending_collect_id or pending_build or pending_work
+		if not busy or step.wait == false then
+			auto_run(step.fn)
 			self.auto_i = self.auto_i + 1
 		else
 			break
@@ -197,15 +209,19 @@ function update(self, dt)
 	end
 
 	if work_ev == "first-catch" then
+		pending_work = nil
 		announce("First catch! +" .. surv.FISH_YIELD .. " food")
 		announce_cooldown = 3
 	elseif work_ev == "fished" then
+		pending_work = nil
 		announce("Caught fish. +" .. surv.FISH_YIELD .. " food")
 		announce_cooldown = 2
 	elseif work_ev == "land-grow" then
+		pending_work = nil
 		announce("The sandbar is wider now!")
 		announce_cooldown = 4
 	elseif work_ev and work_ev:sub(1, 8) == "digging:" then
+		pending_work = nil
 		announce("Digging... " .. work_ev:sub(9) .. "/" .. surv.DIGS_PER_EXPANSION)
 		announce_cooldown = 2
 	end
