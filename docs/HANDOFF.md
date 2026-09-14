@@ -103,17 +103,24 @@ the island, and rescues survivors through a storm → shipwreck → arrival stor
 
 ## Roadmap (next steps for any AI taking over)
 
+**Primary target: HTML5.** The distributable is a Defold HTML5 (wasm/web) build
+runnable in a browser — that is the Poki path and how Stuart checks visual progress.
+Headless desktop builds are for CI/autoplay verification only; don't spend time on
+a native desktop graphical build.
+
+0. **HTML5 build pipeline** — `bob.jar --platform wasm-web --archive build`, serve
+   `build/wasm-web/` over HTTP (a browser cannot load it from `file://`), verify the
+   game boots and plays in a browser with touch/mouse input.
 1. **Fix the stuck-working bug** in the Phaser repo (see above)
 2. **Defold**: add gui HUD (day/wood/food/pop), touch input via mouse-button binding,
    arrival-driven collect/build mirrors the Phaser logic already ported
 3. **Defold**: wire `on_input` taps to nearest-node walking (logic already in `island.script`,
-   needs real input testing with a graphical build: `--platform x86_64-linux` without
-   `--variant headless` needs a display; use HTML5 bundle for quick visual checks)
+   verify in the HTML5 build)
 4. **Audio**: campfire crackle, waves, storm; both engines need a licensing-clean source
 5. **Saves**: IndexedDB (Phaser) / Defold `sys.save`; version the schema (Phaser is
    SCHEMA_VERSION 1 already)
 6. **Playwright smoke tests** (Phaser), headless assertions (Defold)
-7. Consider Poki submission once the Defold HTML5 build is playable
+7. Poki submission once the HTML5 build is playable
 
 ## Verification commands
 
